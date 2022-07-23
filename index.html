@@ -1,14 +1,16 @@
 <html>
   <head>
+    <title>Wave Function Collapse</title>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script>
     <script>
       const tileImages = [];
       const IMAGE_COUNT = 7;
       const IMAGE_SIZE_PX = 14;
-      const DIM = 50;
-      const TILES_PER_FRAME = 10;
+      const DIMX = 160;
+      const DIMY = 80;
+      const TILES_PER_FRAME = 100;
       const SHOW_VALID_COUNT = false;
-      const CANVAS_WIDTH = 700;
+      const CANVAS_WIDTH = 1400;
       const CANVAS_HEIGHT = 700;
       const UP = 0;
       const RIGHT = 1;
@@ -16,6 +18,7 @@
       const LEFT = 3;
       const LOGGING = false;
       const WRAP_AROUND = false;
+      const MOUSE_DEBUG = false;
       let running = true;
       let tileWidth;
       let tileHeight;
@@ -135,7 +138,8 @@
               imageMode(CORNER);
             }
           } else {
-            if (SHOW_VALID_COUNT)
+            if (SHOW_VALID_COUNT) {
+              textSize(tileWidth / 2);
               text(
                 this.validTiles.length.toString(),
                 tileWidth * i + tileWidth / 2 - (tileWidth / IMAGE_SIZE_PX) * i,
@@ -143,6 +147,7 @@
                   tileHeight / 2 -
                   (tileHeight / IMAGE_SIZE_PX) * j
               );
+            }
           }
         }
       }
@@ -165,10 +170,10 @@
         }
         if (LOGGING) console.log(tileRules);
         let fill = 1 + 1 / IMAGE_SIZE_PX;
-        tileWidth = (width * fill) / DIM;
-        tileHeight = (height * fill) / DIM;
-        for (let j = 0; j < DIM; j++) {
-          for (let i = 0; i < DIM; i++) {
+        tileWidth = (width * fill) / DIMX;
+        tileHeight = (height * fill) / DIMY;
+        for (let j = 0; j < DIMY; j++) {
+          for (let i = 0; i < DIMX; i++) {
             tiles.push(new Tile(i, j));
           }
         }
@@ -176,18 +181,17 @@
 
       function checkNeighbors(x, y, resetBacktracking = true) {
         if (WRAP_AROUND) {
-          if (x < 0) x = DIM - 1;
-          if (x >= DIM) x = 0;
-          if (y < 0) y = DIM - 1;
-          if (y >= DIM) y = 0;
+          if (x < 0) x = DIMX - 1;
+          if (x >= DIMX) x = 0;
+          if (y < 0) y = DIMY - 1;
+          if (y >= DIMY) y = 0;
         }
         // Reduce the entropy of neighbors
-        if (x >= 0 && x < DIM && y >= 0 && y < DIM) {
-          let currentTile = tiles[y * DIM + x];
+        if (x >= 0 && x < DIMX && y >= 0 && y < DIMY) {
+          let currentTile = tiles[y * DIMX + x];
           if (currentTile.collapsed == false) {
             currentTile.validTiles = [...Array(tileRules.length).keys()];
-            if(resetBacktracking)
-                currentTile.backtrackInvalid = [];
+            if (resetBacktracking) currentTile.backtrackInvalid = [];
             currentTile.validTiles = currentTile.validTiles.filter((tile) => {
               for (let i = 0; i < currentTile.backtrackInvalid.length; i++) {
                 if (tile == currentTile.backtrackInvalid[i]) return false;
@@ -199,9 +203,9 @@
 
             neighborX = x;
             neighborY = y - 1;
-            if (WRAP_AROUND && neighborY == -1) neighborY = DIM - 1;
+            if (WRAP_AROUND && neighborY == -1) neighborY = DIMY - 1;
             if (neighborY >= 0) {
-              let neighbor = tiles[neighborY * DIM + neighborX];
+              let neighbor = tiles[neighborY * DIMX + neighborX];
               if (neighbor.collapsed) {
                 let neighborRules = tileRules[neighbor.validTiles[0]];
                 currentTile.validTiles = currentTile.validTiles.filter(
@@ -213,9 +217,9 @@
             }
             neighborX = x + 1;
             neighborY = y;
-            if (WRAP_AROUND && neighborX == DIM) neighborX = 0;
-            if (neighborX < DIM) {
-              let neighbor = tiles[neighborY * DIM + neighborX];
+            if (WRAP_AROUND && neighborX == DIMX) neighborX = 0;
+            if (neighborX < DIMX) {
+              let neighbor = tiles[neighborY * DIMX + neighborX];
               if (neighbor.collapsed) {
                 let neighborRules = tileRules[neighbor.validTiles[0]];
                 currentTile.validTiles = currentTile.validTiles.filter(
@@ -227,9 +231,9 @@
             }
             neighborX = x;
             neighborY = y + 1;
-            if (WRAP_AROUND && neighborY == DIM) neighborY = 0;
-            if (neighborY < DIM) {
-              let neighbor = tiles[neighborY * DIM + neighborX];
+            if (WRAP_AROUND && neighborY == DIMY) neighborY = 0;
+            if (neighborY < DIMY) {
+              let neighbor = tiles[neighborY * DIMX + neighborX];
               if (neighbor.collapsed) {
                 let neighborRules = tileRules[neighbor.validTiles[0]];
                 currentTile.validTiles = currentTile.validTiles.filter(
@@ -241,9 +245,9 @@
             }
             neighborX = x - 1;
             neighborY = y;
-            if (WRAP_AROUND && neighborX == -1) neighborX = DIM - 1;
+            if (WRAP_AROUND && neighborX == -1) neighborX = DIMX - 1;
             if (neighborX >= 0) {
-              let neighbor = tiles[neighborY * DIM + neighborX];
+              let neighbor = tiles[neighborY * DIMX + neighborX];
               if (neighbor.collapsed) {
                 let neighborRules = tileRules[neighbor.validTiles[0]];
                 currentTile.validTiles = currentTile.validTiles.filter(
@@ -263,21 +267,27 @@
 
       let hover = "";
       function mouseMoved() {
-        let gridX = Math.floor((mouseX / tileWidth) * (1 - 1 / IMAGE_SIZE_PX));
-        let gridY = Math.floor((mouseY / tileHeight) * (1 - 1 / IMAGE_SIZE_PX));
-        if (gridX >= 0 && gridX < DIM && gridY >= 0 && gridY < DIM) {
-          let tile = tiles[gridY * DIM + gridX];
-          let tileRule;
-          let metadata = "";
-          if (tile.validTiles.length == 1) {
-            tileRule = tileRules[tile.validTiles[0]];
-            metadata = `tile: ${tile.validTiles[0]}`;
+        if (MOUSE_DEBUG) {
+          let gridX = Math.floor(
+            (mouseX / tileWidth) * (1 - 1 / IMAGE_SIZE_PX)
+          );
+          let gridY = Math.floor(
+            (mouseY / tileHeight) * (1 - 1 / IMAGE_SIZE_PX)
+          );
+          if (gridX >= 0 && gridX < DIMX && gridY >= 0 && gridY < DIMY) {
+            let tile = tiles[gridY * DIMX + gridX];
+            let tileRule;
+            let metadata = "";
+            if (tile.validTiles.length == 1) {
+              tileRule = tileRules[tile.validTiles[0]];
+              metadata = `tile: ${tile.validTiles[0]}`;
+            } else {
+              metadata = `validTiles: [${tile.validTiles}]`;
+            }
+            hover = `x: ${gridX}, y: ${gridY}\n${metadata}`;
           } else {
-            metadata = `validTiles: [${tile.validTiles}]`;
+            hover = "";
           }
-          hover = `x: ${gridX}, y: ${gridY}\n${metadata}`;
-        } else {
-          hover = "";
         }
       }
       let valid = [];
@@ -285,10 +295,10 @@
       function draw() {
         background(100);
         // Draw all the tiles
-        for (let j = 0; j < DIM; j++) {
-          for (let i = 0; i < DIM; i++) {
-            if (j * DIM + i < tiles.length) {
-              tiles[j * DIM + i].draw(i, j);
+        for (let j = 0; j < DIMY; j++) {
+          for (let i = 0; i < DIMX; i++) {
+            if (j * DIMX + i < tiles.length) {
+              tiles[j * DIMX + i].draw(i, j);
             }
           }
         }
@@ -361,7 +371,7 @@
               // Revert previous changes
               event = eventStack.pop();
               if (LOGGING) console.log(`Reversed: ${JSON.stringify(event)}`);
-              let lastTile = tiles[event.j * DIM + event.i];
+              let lastTile = tiles[event.j * DIMX + event.i];
               lastTile.collapsed = false;
               let alreadyAdded = false;
               for (let i = 0; i < lastTile.backtrackInvalid.length; i++) {
@@ -391,7 +401,7 @@
       }
     </script>
   </head>
-  <body>
+  <body style="background-color: #646464">
     <main></main>
   </body>
 </html>
