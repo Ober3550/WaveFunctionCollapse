@@ -320,17 +320,20 @@
             if (allValid) {
               // Pick a random tile to collapse
               let tilesCopy = tiles.slice();
-              tilesCopy = tilesCopy.sort((a, b) => {
-                return a.validTiles.length - b.validTiles.length;
-              });
               tilesCopy = tilesCopy.filter((element) => {
                 return (
                   element.validTiles.length > 1 || element.collapsed == false
                 );
               });
+              let minCount = Infinity;
+              for(let i=0;i<tilesCopy.length;i++){
+                if(tilesCopy[i].validTiles.length < minCount){
+                  minCount = tilesCopy[i].validTiles.length;
+                }
+              }
               tilesCopy = tilesCopy.filter((element) => {
                 return (
-                  element.validTiles.length == tilesCopy[0].validTiles.length
+                  element.validTiles.length == minCount
                 );
               });
               if (tilesCopy.length > 0) {
